@@ -127,7 +127,7 @@ private:
         std::tuple<double,double,double> error_signal = std::make_tuple(thetag - theta_pos, xg - x_pos, yg - y_pos);
         return error_signal;
   }
-  bool pid_simulate_pid(double x_goal, double y_goal, double theta_goal_radian, double tolerance, double angle_tolerance){
+  bool pid_simulate_pid(double x_goal, double y_goal, double theta_goal_radian, double tolerance, double angle_tolerance, bool is_moving){
     double theta_goal = normalize_angle(theta_goal_radian);
     RCLCPP_INFO(get_logger(), "x_goal %f, y_goal %f,theta_goal %f",x_goal,y_goal,theta_goal);
     std::tuple<double, double, double> output_signal = std::make_tuple(current_yaw_rad_,current_pos_.x, current_pos_.y);//(theta_pos,x_pos,y_pos)
@@ -149,18 +149,33 @@ private:
         output_signal = pid_plant_process(res);//(theta_pos,x_pos,y_pos)
         distance_error_norm = sqrt(error_x*error_x+error_y*error_y);
         
-        if( fabs(normalize_angle(error_angle)) <= angle_tolerance
-            && distance_error_norm  <= tolerance){
-            RCLCPP_INFO(this->get_logger(), "distance_error_norm= %f, error_angle= %f, both are in tolerence ", distance_error_norm ,error_angle);
-            within_tolerance_counter++;
-            if(within_tolerance_counter >= 10) {
-            is_stabilized_success = true;
-            break;
+        if(is_moving){
+            if( distance_error_norm <= tolerance){
+                RCLCPP_INFO(this->get_logger(), "moving distance_error_norm= %f, error_angle= %f, both are in tolerence ", distance_error_norm ,error_angle);
+                within_tolerance_counter++;
+                if(within_tolerance_counter >= 10) {
+                    is_stabilized_success = true;
+                    break;
+                }
+            }else{
+                RCLCPP_INFO(this->get_logger(), "moving distance_error_norm= %f, error_angle= %f ", distance_error_norm ,error_angle);
+                within_tolerance_counter = 0;
             }
         }else{
-            RCLCPP_INFO(this->get_logger(), "distance_error_norm= %f, error_angle= %f ", distance_error_norm ,error_angle);
-            within_tolerance_counter = 0;
+            if( fabs(normalize_angle(error_angle)) <= angle_tolerance){
+                RCLCPP_INFO(this->get_logger(), "rotating distance_error_norm= %f, error_angle= %f, both are in tolerence %f", 
+                distance_error_norm ,error_angle, angle_tolerance);
+                within_tolerance_counter++;
+                if(within_tolerance_counter >= 10) {
+                    is_stabilized_success = true;
+                    break;
+                }
+            }else{
+                RCLCPP_INFO(this->get_logger(), "rotating distance_error_norm= %f, error_angle= %f ", distance_error_norm ,error_angle);
+                within_tolerance_counter = 0;
+            }       
         }
+
         usleep(hz_inverse_us);
 
     }
@@ -174,7 +189,8 @@ private:
     double distance_error_tolerance = 0.01; 
     double angle_tolerance = 0.01;
     long int total_elapsed_time = 0;
-    bool all_success = true;
+    bool all_success = true, all_success2 = true;
+    bool moving_state;
 
     for(auto it2 = ref_points.begin(); it2 != ref_points.end(); it2++){
         double xg = std::get<0>(*it2);
@@ -185,8 +201,9 @@ private:
         RCLCPP_INFO(this->get_logger(), "next ref_points w%d  (%f,%f), phi: %f",
         w_name, xg, yg, thetag);
         // Recording the timestamp at the start of the code
+        moving_state = true;
         auto beg = std::chrono::high_resolution_clock::now();
-        bool success = pid_simulate_pid(xg,yg, thetag,  distance_error_tolerance,angle_tolerance);
+        bool success = pid_simulate_pid(xg,yg, 0,  distance_error_tolerance,angle_tolerance,moving_state);
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - beg);
         all_success = all_success && success;
@@ -202,6 +219,37 @@ private:
         RCLCPP_INFO(this->get_logger(), "end ref_points w%d  (%f,%f), phi: %f, current_yaw_rad %f: %s, elasped time %ld",
         w_name, xg, yg, thetag, this->current_yaw_rad_, result_pid.c_str(),duration.count());
         total_elapsed_time += duration.count();
+        //if( std::next(it2,1) != ref_points.end()){
+            auto it3 = std::next(it2,1);
+            double xf = std::get<0>(*it3);
+            double yf = std::get<1>(*it3);
+            int wf_name = std::get<2>(*it3);
+            moving_state = false;
+            double thetaf = atan2(yf,xf);
+            std::string result_pid2;
+            RCLCPP_INFO(this->get_logger(), "face next ref_points w%d  (%f,%f), phi: %f",
+            wf_name, xf, yf, thetaf);
+            // Recording the timestamp at the start of the code
+            moving_state = false;
+            auto beg2 = std::chrono::high_resolution_clock::now();
+            bool success2 = pid_simulate_pid(xg,yg, thetaf,  distance_error_tolerance,angle_tolerance,moving_state);
+            auto end2 = std::chrono::high_resolution_clock::now();
+            auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(end2 - beg2);
+            all_success2 = all_success2 && success2;
+            if(success2){
+                result_pid2 = "success";
+            }else{
+                result_pid2 = "failed";
+            }
+            ling.angular.z = 0;
+            ling.linear.x = 0;
+            ling.linear.y = 0;
+            this->move_robot(ling);
+            RCLCPP_INFO(this->get_logger(), "end face ref_points w%d  (%f,%f), phi: %f, current_yaw_rad %f: %s, elasped time %ld",
+            wf_name, xf, yf, thetaf, this->current_yaw_rad_, result_pid2.c_str(),duration2.count());
+            total_elapsed_time += duration2.count();        
+
+        //}
         //sleep(3);
     }
     char all_success_char = all_success? 'Y':'N';
@@ -367,9 +415,8 @@ void move_robot(geometry_msgs::msg::Twist &msg) {
 //                                 std::make_tuple(0,1,1),std::make_tuple(1.5708, 1, -1),std::make_tuple(-3.1415, -1, -1),
 //                                 std::make_tuple(0.0, -1, 1),std::make_tuple(0.0, -1, 1),std::make_tuple(0.0, -1, -1)};
   std::list<std::tuple<double, double,int>> ref_points { //(x, y, point_name)
-  std::make_tuple(0,0,0),std::make_tuple(0.48,0,1)};
- // std::make_tuple(1.4233335664523774,1.2549449067690348,1),
-//   std::make_tuple(-0.31620802131496867,1.709375259788104,2),
+  std::make_tuple(0,0,0),std::make_tuple(0.48,0,1),
+   std::make_tuple(1.5316259335397133,-0.9857146630975056,2)};
 //   std::make_tuple(-0.9377000338843094,1.3865132637808502,3),
 //   std::make_tuple(-1.0786540214012905,0.802643380247843,4),
 //   std::make_tuple(-1.4705367247460317,0.5298399503045429,5),
