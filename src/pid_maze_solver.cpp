@@ -51,14 +51,14 @@ public:
 
      //PID parameter   best Kp=4.0 
     this->Kp = 1;
-    this->Ki = 0.1;
-    this->Kd = 0.005;
-    this->Kp_angle = 5.8;//std::stod(KP_str); // 5.8;//5.5,0,0 best, 5.8 max . (5.8,0.1,0.001) best
+    this->Ki = 0.0;
+    this->Kd = 0.0;
+    this->Kp_angle = 1.0;//std::stod(KP_str); // 5.8;//5.5,0,0 best, 5.8 max . (5.8,0.1,0.001) best
     this->Ki_angle = 0.0;//std::stod(KI_str); // 1.0;
     this->Kd_angle = 0.0;//std::stod(KD_str); // // 0.0;
-    this->Hz = 10.0;
-    this->dt = 0.1;
-    this->hz_inverse_us = 100000;//10 Hz = 0.1 sec = 100,000 microsec 
+    this->Hz = 100.0;
+    this->dt = 0.01;
+    this->hz_inverse_us = 10000;//10 Hz = 0.1 sec = 100,000 microsec 
     this->pid_reset();
   }
 
@@ -176,17 +176,14 @@ private:
     long int total_elapsed_time = 0;
     bool all_success = true;
 
-    for(auto it2 = ref_points.begin(); it2 != std::next(ref_points.end()),-1; it2++){
-        auto it2_next = std::next(it2, 1);
-        double xf = std::get<0>(*it2_next); 
-        double yf = std::get<1>(*it2_next); 
-        double thetag = atan2(yf,xf);
+    for(auto it2 = ref_points.begin(); it2 != ref_points.end(); it2++){
         double xg = std::get<0>(*it2);
         double yg = std::get<1>(*it2);
         int w_name = std::get<2>(*it2);
+        double thetag = atan2(yg,xg);
         std::string result_pid;
-        RCLCPP_INFO(this->get_logger(), "start ref_points w%d facing (%f,%f), phi: %f",
-        w_name, xf, yf, thetag);
+        RCLCPP_INFO(this->get_logger(), "next ref_points w%d  (%f,%f), phi: %f",
+        w_name, xg, yg, thetag);
         // Recording the timestamp at the start of the code
         auto beg = std::chrono::high_resolution_clock::now();
         bool success = pid_simulate_pid(xg,yg, thetag,  distance_error_tolerance,angle_tolerance);
@@ -202,8 +199,8 @@ private:
         ling.linear.x = 0;
         ling.linear.y = 0;
         this->move_robot(ling);
-        RCLCPP_INFO(this->get_logger(), "end ref_points w%d facing (%f,%f), phi: %f, current_yaw_rad %f: %s, elasped time %ld",
-        w_name, xf, yf, thetag, this->current_yaw_rad_, result_pid.c_str(),duration.count());
+        RCLCPP_INFO(this->get_logger(), "end ref_points w%d  (%f,%f), phi: %f, current_yaw_rad %f: %s, elasped time %ld",
+        w_name, xg, yg, thetag, this->current_yaw_rad_, result_pid.c_str(),duration.count());
         total_elapsed_time += duration.count();
         //sleep(3);
     }
@@ -370,19 +367,19 @@ void move_robot(geometry_msgs::msg::Twist &msg) {
 //                                 std::make_tuple(0,1,1),std::make_tuple(1.5708, 1, -1),std::make_tuple(-3.1415, -1, -1),
 //                                 std::make_tuple(0.0, -1, 1),std::make_tuple(0.0, -1, 1),std::make_tuple(0.0, -1, -1)};
   std::list<std::tuple<double, double,int>> ref_points { //(x, y, point_name)
-  //std::make_tuple(0,0,0),
-  std::make_tuple(1.4233335664523774,1.2549449067690348,1),
-  std::make_tuple(-0.31620802131496867,1.709375259788104,2),
-  std::make_tuple(-0.9377000338843094,1.3865132637808502,3),
-  std::make_tuple(-1.0786540214012905,0.802643380247843,4),
-  std::make_tuple(-1.4705367247460317,0.5298399503045429,5),
-  std::make_tuple(-1.6444201657399438,0.09722425119499664,6),
-  std::make_tuple(-2.084116856742074,-0.13768523420490664,7),
-  std::make_tuple(-2.697379714102003,-1.025442795243846,8),
-  std::make_tuple(-2.8597929418560213,-2.000779912032357,9),
-  std::make_tuple(-2.5539303731884315,-2.3463212265084743,10),
-  std::make_tuple(-2.653786184827788,-2.9838296560080484,11),
-  std::make_tuple(-2.605015860915187,-3.741871788709527,12)};
+  std::make_tuple(0,0,0),std::make_tuple(0.48,0,1)};
+ // std::make_tuple(1.4233335664523774,1.2549449067690348,1),
+//   std::make_tuple(-0.31620802131496867,1.709375259788104,2),
+//   std::make_tuple(-0.9377000338843094,1.3865132637808502,3),
+//   std::make_tuple(-1.0786540214012905,0.802643380247843,4),
+//   std::make_tuple(-1.4705367247460317,0.5298399503045429,5),
+//   std::make_tuple(-1.6444201657399438,0.09722425119499664,6),
+//   std::make_tuple(-2.084116856742074,-0.13768523420490664,7),
+//   std::make_tuple(-2.697379714102003,-1.025442795243846,8),
+//   std::make_tuple(-2.8597929418560213,-2.000779912032357,9),
+//   std::make_tuple(-2.5539303731884315,-2.3463212265084743,10),
+//   std::make_tuple(-2.653786184827788,-2.9838296560080484,11),
+//   std::make_tuple(-2.605015860915187,-3.741871788709527,12)};
 
 
   rclcpp::TimerBase::SharedPtr timer_1_;
