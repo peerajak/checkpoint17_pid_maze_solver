@@ -36,9 +36,17 @@ target_link_libraries(pid_maze_solver
     Eigen3::Eigen
 )
 
+add_executable(pid_maze_solver_turtlebot src/pid_maze_solver_turtlebot.cpp)
+ament_target_dependencies(pid_maze_solver_turtlebot
+rclcpp geometry_msgs nav_msgs std_msgs tf2 tf2_ros)
+target_link_libraries(pid_maze_solver_turtlebot
+    Eigen3::Eigen
+)
+
 
 install(TARGETS
    pid_maze_solver
+   pid_maze_solver_turtlebot
    DESTINATION lib/${PROJECT_NAME}
  )
 
