@@ -21,9 +21,12 @@ class MazeSolver : public rclcpp::Node {
 public:
 
   MazeSolver(int argc, char *argv[]) : Node("maze_solver") {
-    // std::string  KP_str = argv[1];
-    // std::string  KI_str = argv[2];
-    // std::string  KD_str = argv[3];
+     std::string  KP_str = argv[1];
+     std::string  KI_str = argv[2];
+     std::string  KD_str = argv[3];
+     std::string  KP_angle_str = argv[4];
+     std::string  KI_angle_str = argv[5];
+     std::string  KD_angle_str = argv[6];
     // ---- 1. publisher to cmd_vel
       publisher_1_twist =
         this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
@@ -50,12 +53,12 @@ public:
 
 
      //PID parameter   best Kp=4.0 
-    this->Kp = 1;
-    this->Ki = 0.0;
-    this->Kd = 0.0;
-    this->Kp_angle = 1.0;//std::stod(KP_str); // 5.8;//5.5,0,0 best, 5.8 max . (5.8,0.1,0.001) best
-    this->Ki_angle = 0.0;//std::stod(KI_str); // 1.0;
-    this->Kd_angle = 0.0;//std::stod(KD_str); // // 0.0;
+    this->Kp = std::stod(KP_str);
+    this->Ki = std::stod(KI_str); 
+    this->Kd = std::stod(KD_str); 
+    this->Kp_angle = std::stod(KP_angle_str);
+    this->Ki_angle = std::stod(KI_angle_str); 
+    this->Kd_angle = std::stod(KD_angle_str); 
     this->Hz = 100.0;
     this->dt = 0.01;
     this->hz_inverse_us = 10000;//10 Hz = 0.1 sec = 100,000 microsec 
@@ -292,8 +295,10 @@ bool pid_simulate_rotating(double x_goal, double y_goal, double tolerance, doubl
             total_elapsed_time += duration2.count();   
 
         }
-        RCLCPP_INFO(this->get_logger(), "Sleep 3 secs");
-        sleep(3);
+        //int sleep_sec = 3;
+        //RCLCPP_INFO(this->get_logger(), "Sleep %d secs", sleep_sec);
+        //sleep(sleep_sec);
+        usleep(hz_inverse_us);
     }
     char all_success_char = all_success? 'Y':'N';
     RCLCPP_INFO(get_logger(), "Summary Kp_angle %f, Ki_angle %f, Kd_angle %f total elapsed time %ld, all successes? %c",
