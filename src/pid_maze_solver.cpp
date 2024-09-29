@@ -293,7 +293,7 @@ bool pid_simulate_rotating(double x_goal, double y_goal, double tolerance, doubl
 
         }
         RCLCPP_INFO(this->get_logger(), "Sleep 3 secs");
-        sleep(0.1);
+        sleep(3);
     }
     char all_success_char = all_success? 'Y':'N';
     RCLCPP_INFO(get_logger(), "Summary Kp_angle %f, Ki_angle %f, Kd_angle %f total elapsed time %ld, all successes? %c",
