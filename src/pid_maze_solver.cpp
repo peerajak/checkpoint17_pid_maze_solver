@@ -67,7 +67,7 @@ private:
 
   void timer1_callback() {
     RCLCPP_DEBUG(this->get_logger(), "Timer Callback ");
-    timer_1_->cancel();
+    this->timer_1_->cancel();
     //assert(false);
     std::thread{std::bind(&MazeSolver::execute, this)}.detach();
   }
@@ -142,7 +142,7 @@ private:
         double thetag= atan2(yf - y_pos,xf - x_pos);
         std::tuple<double,double,double> error_signal = std::make_tuple(thetag - theta_pos, 0, 0);
         RCLCPP_INFO(get_logger(), "pid_error_rotating goal (%f,%f) thetag (%f), current position (%f,%f) current_yaw %f, angular error %f "
-        ,xf,yf,x_pos, y_pos, thetag, theta_pos, thetag-theta_pos);
+        ,xf,yf, thetag,x_pos, y_pos, theta_pos, thetag-theta_pos);
         return error_signal;
   }
 
@@ -293,7 +293,7 @@ bool pid_simulate_rotating(double x_goal, double y_goal, double tolerance, doubl
 
         }
         RCLCPP_INFO(this->get_logger(), "Sleep 3 secs");
-        sleep(3);
+        sleep(0.1);
     }
     char all_success_char = all_success? 'Y':'N';
     RCLCPP_INFO(get_logger(), "Summary Kp_angle %f, Ki_angle %f, Kd_angle %f total elapsed time %ld, all successes? %c",
@@ -460,17 +460,20 @@ void move_robot(geometry_msgs::msg::Twist &msg) {
   std::list<std::tuple<double, double,int>> ref_points { //(x, y, point_name)
   //std::make_tuple(0,0,0),
   std::make_tuple(0.48,0,1),
-   std::make_tuple(0.48,-0.4273053605934011,2)};
-//   std::make_tuple(-0.9377000338843094,1.3865132637808502,3),
-//   std::make_tuple(-1.0786540214012905,0.802643380247843,4),
-//   std::make_tuple(-1.4705367247460317,0.5298399503045429,5),
-//   std::make_tuple(-1.6444201657399438,0.09722425119499664,6),
-//   std::make_tuple(-2.084116856742074,-0.13768523420490664,7),
-//   std::make_tuple(-2.697379714102003,-1.025442795243846,8),
-//   std::make_tuple(-2.8597929418560213,-2.000779912032357,9),
-//   std::make_tuple(-2.5539303731884315,-2.3463212265084743,10),
-//   std::make_tuple(-2.653786184827788,-2.9838296560080484,11),
-//   std::make_tuple(-2.605015860915187,-3.741871788709527,12)};
+   //std::make_tuple(0.48,-0.4273053605934011,2),
+   std::make_tuple(0.5223066137364896,-1.3412349495511038,2),
+   std::make_tuple(1.0845613669732483,-1.3931992411756675,3),
+   std::make_tuple(1.0395751265563804,-0.8338197862237189,4),
+   std::make_tuple(1.4534436494017255,-0.8494273283260394,5),
+   std::make_tuple(1.4196549222698924,-0.29199996173774334,6),
+   std::make_tuple(2.0396605282345055,-0.25722763994174136,7),
+   std::make_tuple(1.9877302391929643,0.5694935878197983,8),
+   std::make_tuple(1.5990640106450607,0.5531625432022931,9),
+   std::make_tuple(1.5521891067753861,0.18596023078249008,10),
+   std::make_tuple(1.033156713350545,0.14619280521472142,11),
+   std::make_tuple(0.6408862225835807,0.4888058306883233,12),
+   std::make_tuple(0.10750566381487081,0.48461071303469294,13)
+   };
 
 
   rclcpp::TimerBase::SharedPtr timer_1_;
