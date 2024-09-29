@@ -29,13 +29,13 @@ enum SceneType {
 class MazeSolver : public rclcpp::Node {
 public:
 
-    MazeSolver(enum SceneType scene_number) : Node("maze_solver"), scene_number_(scene_number) {
-    //  std::string  KP_str = argv[1];
-    //  std::string  KI_str = argv[2];
-    //  std::string  KD_str = argv[3];
-    //  std::string  KP_angle_str = argv[4];
-    //  std::string  KI_angle_str = argv[5];
-    //  std::string  KD_angle_str = argv[6];
+  MazeSolver(int argc, char *argv[]) : Node("maze_solver") {
+     std::string  KP_str = argv[1];
+     std::string  KI_str = argv[2];
+     std::string  KD_str = argv[3];
+     std::string  KP_angle_str = argv[4];
+     std::string  KI_angle_str = argv[5];
+     std::string  KD_angle_str = argv[6];
     // ---- 1. publisher to cmd_vel
       publisher_1_twist =
         this->create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
@@ -54,7 +54,7 @@ public:
         std::bind(&MazeSolver::odom_callback, this,
                   std::placeholders::_1), options3_odom);
 
-    //ref_points->push_back(std::make_tuple(0,0));
+    //ref_points.push_back(std::make_tuple(0,0));
     double cur_ref_phi = 0;
     double cur_ref_x = 0;
     double cur_ref_y = 0;
@@ -62,26 +62,12 @@ public:
 
 
      //PID parameter   best Kp=4.0 
-    switch(this->scene_number_){
-    case Simulation:
-        this->Kp = 1;
-        this->Ki = 0;
-        this->Kd = 0;
-        this->Kp_angle = 1;
-        this->Ki_angle = 0; 
-        this->Kd_angle = 0; 
-        RCLCPP_INFO(this->get_logger(), "Simulation Scence");
-    break;
-    case Cyberworld:
-        this->Kp = 1;
-        this->Ki = 0.0;
-        this->Kd = 0.0;
-        this->Kp_angle = 1.5;//std::stod(KP_str); // 5.8;//5.5,0,0 best, 5.8 max . (5.8,0.1,0.001) best
-        this->Ki_angle = 0.001;//std::stod(KI_str); // 1.0;
-        this->Kd_angle = 0.5;//std::stod(KD_str); // // 0.0;
-        RCLCPP_INFO(this->get_logger(), "Cyberworld Scence");
-    break;
-    }
+    this->Kp = std::stod(KP_str);
+    this->Ki = std::stod(KI_str); 
+    this->Kd = std::stod(KD_str); 
+    this->Kp_angle = std::stod(KP_angle_str);
+    this->Ki_angle = std::stod(KI_angle_str); 
+    this->Kd_angle = std::stod(KD_angle_str); 
     this->Hz = 100.0;
     this->dt = 0.01;
     this->hz_inverse_us = 10000;//10 Hz = 0.1 sec = 100,000 microsec 
@@ -263,18 +249,8 @@ bool pid_simulate_rotating(double x_goal, double y_goal, double tolerance, doubl
     bool all_success = true, all_success2 = true;
     double prev_xg = 0;
     double prev_yg = 0;
-    std::list<std::tuple<double, double,int>>  *ref_points;
-    switch(this->scene_number_){
-    case Simulation:
-        ref_points = &this->ref_points_simulation;        
-        RCLCPP_INFO(this->get_logger(), "Simulation Scence");
-    break;
-    case Cyberworld:
-      ref_points = &this->ref_points_cyberworld;   
-      RCLCPP_INFO(this->get_logger(), "Cyberworld Scence");
-    break;
-    }
-    for(auto it2 = ref_points->begin(); it2 != ref_points->end(); it2++){        
+
+    for(auto it2 = ref_points.begin(); it2 != ref_points.end(); it2++){        
         double xg = std::get<0>(*it2);
         double yg = std::get<1>(*it2);
         int w_name = std::get<2>(*it2);
@@ -301,7 +277,7 @@ bool pid_simulate_rotating(double x_goal, double y_goal, double tolerance, doubl
         total_elapsed_time += duration.count();
         prev_xg = xg;
         prev_yg = yg;
-        if( std::next(it2,1) != ref_points->end()){
+        if( std::next(it2,1) != ref_points.end()){
             auto it3 = std::next(it2,1);
             double xf = std::get<0>(*it3);
             double yf = std::get<1>(*it3);
@@ -495,7 +471,7 @@ void move_robot(geometry_msgs::msg::Twist &msg) {
 //   std::list<std::tuple<double, double, double>> waypoints {std::make_tuple(0,1,-1),std::make_tuple(0,1,1),
 //                                 std::make_tuple(0,1,1),std::make_tuple(1.5708, 1, -1),std::make_tuple(-3.1415, -1, -1),
 //                                 std::make_tuple(0.0, -1, 1),std::make_tuple(0.0, -1, 1),std::make_tuple(0.0, -1, -1)};
-  std::list<std::tuple<double, double,int>> ref_points_simulation { //(x, y, point_name)
+  std::list<std::tuple<double, double,int>> ref_points { //(x, y, point_name)
   //std::make_tuple(0,0,0),
   std::make_tuple(0.48,0,1),
    //std::make_tuple(0.48,-0.4273053605934011,2),
@@ -513,46 +489,16 @@ void move_robot(geometry_msgs::msg::Twist &msg) {
    std::make_tuple(0.10750566381487081,0.48461071303469294,13)
    };
 
-  std::list<std::tuple<double, double,int>> ref_points_cyberworld { //(x, y, point_name)
-    std::make_tuple(-0.14072222663895514,0.20963343727106917,1),
-    std::make_tuple(0.42169079404102896,2.01446194421149,2),
-    std::make_tuple(0.9001114062906734,1.8820513018206086,3),
-    std::make_tuple(0.7354377371669488,1.430042012317784,4),
-    std::make_tuple(1.261612668623466,1.222889746449168,5),
-    std::make_tuple(1.3796099603537948,1.646495919283184,6),
-    std::make_tuple(1.898145928786512,1.460745022708327,7),
-    std::make_tuple(1.7955302388060583,1.0380702296132245,8),
-    std::make_tuple(2.117070841998126,0.9275936593186743,9),
-    std::make_tuple(2.034930539947201,0.47722139940068337,10),
-    std::make_tuple(1.235686936522197,0.7201346846389097,11),
-    std::make_tuple(1.0207767841244602,0.2272597404988992,12),
-    std::make_tuple(0.6125097392915739,0.44621093521440675,13),
-   };
 
   rclcpp::TimerBase::SharedPtr timer_1_;
   int timer1_counter;
   rclcpp::Publisher<std_msgs::msg::Float32MultiArray>::SharedPtr publisher_;
-  enum SceneType scene_number_;
+
 };
 
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
-  enum SceneType scene_number = Simulation;
-    // Check if a scene number argument is provided
-
-  if (argc > 1) {
-    scene_number = static_cast<enum SceneType>(std::atoi(argv[1]));
-    switch (scene_number) {
-    case Simulation:
-    std::cout<<"Simulation scene"<<std::endl;
-    break;
-
-    case  Cyberworld:
-    std::cout<<"Cyberworld scene"<<std::endl;
-    break;
-    }
-  }
-  auto maze_solver_node = std::make_shared<MazeSolver>(scene_number);
+  auto maze_solver_node = std::make_shared<MazeSolver>(argc, argv);
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(maze_solver_node);
   executor.spin();
