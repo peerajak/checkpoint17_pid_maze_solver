@@ -90,7 +90,7 @@ public:
     options3_odom.callback_group = callback_group_3_odom;
     subscription_3_odom = this->create_subscription<nav_msgs::msg::Odometry>(
     "/odometry/filtered", 10,
-     // "/rosbot_xl_base_controller/odom", 10,
+        //"/rosbot_xl_base_controller/odom", 10,
         std::bind(&MazeSolver::odom_callback, this,
                   std::placeholders::_1), options3_odom);
 
@@ -522,22 +522,20 @@ void move_robot(geometry_msgs::msg::Twist &msg) {
    };
 
   std::list<std::tuple<double, double,int>> ref_points_cyberworld { //(x, y, point_name)
-    // std::make_tuple(-0.34,1.91,1),
-    // std::make_tuple(1.500,1.91,2),
-    // std::make_tuple(1.5,1.20,3),
-    // std::make_tuple(1.04,1.20,4),
-    // std::make_tuple(1.055257,0.681249722030176,5),
-    // std::make_tuple(1.4517,0.74,6),
-    // std::make_tuple(1.4624,0.184,7),
-    // std::make_tuple(1.0727,0.14937,8),
-    // std::make_tuple(1.064178219287,-0.1875039027,9),
-    // std::make_tuple(0.5494644290351465,-0.1321260218456416,10),
-    // std::make_tuple(0.546920864822143,0.6651253057815845,11),
-    // std::make_tuple(0.020591624133254056,0.6252533740093053,12),
-    // std::make_tuple(0.020591624133254056,1.1732325315995453,13),
-    // std::make_tuple(-0.3729595140394764,1.2213187885000487,14),
-    std::make_tuple(1.4947886892221105,0.11924777492422835,1),
-    std::make_tuple(-0.41212333878147606, 0.4408400942897714,2)
+    std::make_tuple(-0.34,1.91,1),
+    std::make_tuple(1.500,1.91,2),
+    std::make_tuple(1.5,1.20,3),
+    std::make_tuple(1.04,1.20,4),
+    std::make_tuple(1.055257,0.681249722030176,5),
+    std::make_tuple(1.4517,0.74,6),
+    std::make_tuple(1.4624,0.184,7),
+    std::make_tuple(1.0727,0.14937,8),
+    std::make_tuple(1.064178219287,-0.1875039027,9),
+    std::make_tuple(0.5494644290351465,-0.1321260218456416,10),
+    std::make_tuple(0.546920864822143,0.6651253057815845,11),
+    std::make_tuple(0.020591624133254056,0.6252533740093053,12),
+    std::make_tuple(0.020591624133254056,1.1732325315995453,13),
+    std::make_tuple(-0.3729595140394764,1.2213187885000487,14),
    };
 
   rclcpp::TimerBase::SharedPtr timer_1_;
