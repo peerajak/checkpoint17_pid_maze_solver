@@ -17,3 +17,5 @@ Terminal 2
 cd ~/ros2_ws && colcon build 
 source install/setup.bash ; ros2 run pid_maze_solver pid_maze_solver 2.1 0.001 0.1 1 0 0
 
+
+ros2 topic echo /odometry/filtered --field pose.pose.position

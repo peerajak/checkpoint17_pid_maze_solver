@@ -166,7 +166,7 @@ private:
         double delta_x_robot_coordinate =  cos(theta_error) *  delta_x_world_coordinate - sin(theta_error) * delta_y_world_coordinate;
         double delta_y_robot_coordinate =  sin(theta_error) *  delta_x_world_coordinate + cos(theta_error) * delta_y_world_coordinate;        
         std::tuple<double,double,double> error_signal = std::make_tuple(theta_error , delta_x_robot_coordinate , delta_y_robot_coordinate);
-        RCLCPP_INFO(get_logger(), "moving output |goal (%f,%f)|thetag (%f)|current position (%f,%f)|current_yaw %f|angular error %f "
+        RCLCPP_INFO(get_logger(), "moving output |Goal_x:%f,Goal_y:%f|thetag (%f)|Current_x:%f,Current_y:%f|current_yaw %f|angular error %f "
         ,xg,yg, thetag,x_pos, y_pos, theta_pos, theta_error);
         return error_signal;
   }
@@ -462,18 +462,27 @@ void move_robot(geometry_msgs::msg::Twist &msg) {
   //------- 3. Odom related  Functions -----------//  
   void odom_callback(const nav_msgs::msg::Odometry::SharedPtr msg) {
 
-    current_pos_ = msg->pose.pose.position;
-    current_angle_ = msg->pose.pose.orientation;
-    current_yaw_rad_ = yaw_theta_from_quaternion(
+    this->current_pos_ = msg->pose.pose.position;
+    this->current_angle_ = msg->pose.pose.orientation;
+    this->current_yaw_rad_ = yaw_theta_from_quaternion(
         msg->pose.pose.orientation.x, msg->pose.pose.orientation.y,
         msg->pose.pose.orientation.z, msg->pose.pose.orientation.w);
     
-    current_speed_ = msg->twist.twist;
-    //current_speed_y = msg->twist.twist.linear.y;
-    //current_angular_velocity = msg->twist.twist.angular.z;
+    this->current_speed_ = msg->twist.twist;
+    this->world_est_current_yaw_rad_= current_yaw_rad_ *2;
+    double theta_diff = prev_world_est_current_yaw_rad_ - world_est_current_yaw_rad_;
+    double delta_x_robot_coordinate = current_pos_.x - prev_pos_x;
+    double delta_y_robot_coordinate = current_pos_.y - prev_pos_y;
+    double delta_x_world_coordinate =  cos(theta_diff) *  delta_x_robot_coordinate - sin(theta_diff) * delta_y_robot_coordinate;
+    double delta_y_world_coordinate =  sin(theta_diff) *  delta_x_robot_coordinate + cos(theta_diff) * delta_y_robot_coordinate; 
+    this->world_est_current_pos_x_ +=  delta_x_world_coordinate;
+    this->world_est_current_pos_y_ +=  delta_y_world_coordinate; 
 
-    RCLCPP_DEBUG(this->get_logger(), "current pos=['%f','%f','%f'",
+    RCLCPP_DEBUG(this->get_logger(), "current pos=['%f','%f','%f']",
                  current_pos_.x, current_pos_.y, current_yaw_rad_);
+    this->prev_pos_x = current_pos_.x;
+    this->prev_pos_y = current_pos_.y;
+    this->prev_world_est_current_yaw_rad_ = world_est_current_yaw_rad_;
   }
   double yaw_theta_from_quaternion(double qx, double qy, double qz, double qw) {
     double roll_rad, pitch_rad, yaw_rad;
@@ -491,7 +500,10 @@ void move_robot(geometry_msgs::msg::Twist &msg) {
   geometry_msgs::msg::Quaternion current_angle_;
   geometry_msgs::msg::Twist current_speed_;
   double current_yaw_rad_;
-
+  double world_est_current_yaw_rad_ = 0;
+  double world_est_current_pos_x_= 0;
+  double world_est_current_pos_y_= 0;
+  double prev_pos_x, prev_pos_y, prev_world_est_current_yaw_rad_;
   //--------  Kinematic related private variables --------// 
   double l = 0.500/2;
   double r = 0.254/2;
@@ -505,9 +517,9 @@ void move_robot(geometry_msgs::msg::Twist &msg) {
 //                                 std::make_tuple(0,1,1),std::make_tuple(1.5708, 1, -1),std::make_tuple(-3.1415, -1, -1),
 //                                 std::make_tuple(0.0, -1, 1),std::make_tuple(0.0, -1, 1),std::make_tuple(0.0, -1, -1)};
   std::list<std::tuple<double, double,int>> ref_points_simulation { //(x, y, point_name)
-  std::make_tuple(0,0,0),
-  std::make_tuple(0.48,0,1),
-   std::make_tuple(0.5223066137364896,-1.3412349495511038,2),
+  std::make_tuple(0,0,0),// same 
+  std::make_tuple(0.48,0,1),// same  
+   std::make_tuple(0.5223066137364896,-1.3412349495511038,2),//(0.48,0,-0.74216),'(1.495466','-0.929541','-0.742126' 
    std::make_tuple(1.0845613669732483,-1.3931992411756675,3),
    std::make_tuple(1.0395751265563804,-0.8338197862237189,4),
    std::make_tuple(1.4534436494017255,-0.8494273283260394,5),
@@ -522,23 +534,38 @@ void move_robot(geometry_msgs::msg::Twist &msg) {
    };
 
   std::list<std::tuple<double, double,int>> ref_points_cyberworld { //(x, y, point_name)
-    // std::make_tuple(-0.34,1.91,1),
-    // std::make_tuple(1.500,1.91,2),
-    // std::make_tuple(1.5,1.20,3),
-    // std::make_tuple(1.04,1.20,4),
-    // std::make_tuple(1.055257,0.681249722030176,5),
-    // std::make_tuple(1.4517,0.74,6),
-    // std::make_tuple(1.4624,0.184,7),
-    // std::make_tuple(1.0727,0.14937,8),
-    // std::make_tuple(1.064178219287,-0.1875039027,9),
-    // std::make_tuple(0.5494644290351465,-0.1321260218456416,10),
-    // std::make_tuple(0.546920864822143,0.6651253057815845,11),
-    // std::make_tuple(0.020591624133254056,0.6252533740093053,12),
-    // std::make_tuple(0.020591624133254056,1.1732325315995453,13),
-    // std::make_tuple(-0.3729595140394764,1.2213187885000487,14),
-    std::make_tuple(1.4947886892221105,0.11924777492422835,1),
-    std::make_tuple(-0.41212333878147606, 0.4408400942897714,2)
-   };
+std::make_tuple (0.84, 0.518, 1) ,
+std::make_tuple (2.6877, 0.518, 2) ,
+std::make_tuple (2.6877, 0.04800000000000004, 3) ,
+std::make_tuple (2.301235196685081, 0.04462638018555065, 4) ,
+std::make_tuple (2.3289159136559263, -0.47183597791111487, 5) ,
+std::make_tuple (2.718420516831006, -0.42852177954987414, 6) ,
+std::make_tuple (2.7388494899765057, -1.0041456908917477, 7) ,
+std::make_tuple (2.312192559660402, -0.9939025143073208, 8) ,
+std::make_tuple (2.29492122831896, -1.3443709691792418, 9) ,
+std::make_tuple (1.8332646068019698, -1.3617840080510675, 10) ,
+std::make_tuple (1.7423012336595385, -0.43602567237049494, 11) ,
+std::make_tuple (1.3155328804857283, -0.5258755873689844, 12) ,
+std::make_tuple (1.2792541199324234, -0.025478297043073028, 13) ,
+std::make_tuple (0.9037423276970575, -0.03182486680091656, 14) ,
+};
+
+std::list<std::tuple<double, double,int>> standard_ref_points_cyberworld {
+       std::make_tuple(0,0,1),
+    std::make_tuple(1.8477,0,2),
+    std::make_tuple(1.8477,-0.47,3),
+    std::make_tuple(1.4612351966850805,-0.47337361981444936,4),
+    std::make_tuple(1.488915913655926,-0.9898359779111149,5),
+    std::make_tuple(1.8784205168310057, -0.9465217795498742,6),
+    std::make_tuple(1.8988494899765054,-1.5221456908917477,7),
+    std::make_tuple(1.472192559660402,-1.5119025143073208,8),
+    std::make_tuple(1.45492122831896,-1.8623709691792418,9),
+    std::make_tuple(0.9932646068019697,-1.8797840080510675,10),
+    std::make_tuple(0.9023012336595384,-0.9874025672370495,11),
+    std::make_tuple(0.47553288048572817, -1.0438755873689844,12),
+    std::make_tuple(0.43925411993242325,-0.543478297043073,13),
+    std::make_tuple( 0.06374232769705736, -0.5498248668009166,14)
+};
 
   rclcpp::TimerBase::SharedPtr timer_1_;
   int timer1_counter;

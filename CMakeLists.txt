@@ -43,10 +43,17 @@ target_link_libraries(pid_maze_solver_turtlebot
     Eigen3::Eigen
 )
 
+add_executable(understand_odom src/understand_odom.cpp)
+ament_target_dependencies(understand_odom
+rclcpp nav_msgs tf2 tf2_ros)
+
+
+
 
 install(TARGETS
    pid_maze_solver
    pid_maze_solver_turtlebot
+   understand_odom
    DESTINATION lib/${PROJECT_NAME}
  )
 
