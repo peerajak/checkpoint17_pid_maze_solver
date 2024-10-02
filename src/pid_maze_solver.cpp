@@ -53,13 +53,14 @@ public:
      //PID parameter   best Kp=4.0 
     switch(this->scene_number_){
     case Simulation:
-        this->Kp = 1;
-        this->Ki = 0;
+        this->Kp = 1.4;
+        this->Ki = 0.05;
         this->Kd = 0;
-        this->Kp_angle = 1;
-        this->Ki_angle = 0; 
-        this->Kd_angle = 0; 
-        RCLCPP_INFO(this->get_logger(), "Simulation Scence");
+        this->Kp_angle = 1.2;
+        this->Ki_angle = 0.005; 
+        this->Kd_angle = 0.005; 
+        RCLCPP_INFO(this->get_logger(), "Simulation Scene,Kp:%f,Ki:%f,Kd:%f,Kp_angle:%f,Ki_angle:%f,Kd_angle:%f",
+       this->Kp, this->Ki, this->Kd, this->Kp_angle, this->Ki_angle, this->Kd_angle);   
         if(!this->is_forward_direction_){
             std::reverse(this->ref_points_simulation.begin(), this->ref_points_simulation.end());
         }
@@ -71,7 +72,8 @@ public:
         this->Kp_angle = 0.5;//std::stod(KP_str); // 5.8;//5.5,0,0 best, 5.8 max . (5.8,0.1,0.001) best
         this->Ki_angle = 0;//std::stod(KI_str); // 1.0;
         this->Kd_angle = 0;//std::stod(KD_str); // // 0.0;
-        RCLCPP_INFO(this->get_logger(), "Cyberworld Scence");
+        RCLCPP_INFO(this->get_logger(), "Cyberworld Scene,Kp:%f,Ki:%f,Kd:%f,Kp_angle:%f,Ki_angle:%f,Kd_angle:%f",
+       this->Kp, this->Ki, this->Kd, this->Kp_angle, this->Ki_angle, this->Kd_angle);  
         if(!this->is_forward_direction_){
             std::reverse(this->ref_points_cyberworld.begin(), this->ref_points_cyberworld.end());
         }
@@ -166,7 +168,7 @@ private:
         double delta_x_robot_coordinate =  cos(theta_error) *  delta_x_world_coordinate - sin(theta_error) * delta_y_world_coordinate;
         double delta_y_robot_coordinate =  sin(theta_error) *  delta_x_world_coordinate + cos(theta_error) * delta_y_world_coordinate;        
         std::tuple<double,double,double> error_signal = std::make_tuple(theta_error , delta_x_robot_coordinate , delta_y_robot_coordinate);
-        RCLCPP_INFO(get_logger(), "moving output |Goal_x:%f,Goal_y:%f|thetag (%f)|Current_x:%f,Current_y:%f|current_yaw %f|angular error %f "
+        RCLCPP_INFO(get_logger(), "moving output |Goal_x:%f,Goal_y:%f|thetag:%f|Current_x:%f,Current_y:%f|current_yaw:%f|angular error:%f "
         ,xg,yg, thetag,x_pos, y_pos, theta_pos, theta_error);
         return error_signal;
   }
@@ -176,9 +178,10 @@ private:
         double x_pos = std::get<1>(output_signal);
         double y_pos = std::get<2>(output_signal);
         double thetag= atan2(yf - y_pos,xf - x_pos);
-        std::tuple<double,double,double> error_signal = std::make_tuple(thetag - theta_pos, 0, 0);
-        RCLCPP_INFO(get_logger(), "rotating output |goal (%f,%f)|thetag (%f)|current position (%f,%f)|current_yaw %f|angular error %f "
-        ,xf,yf, thetag,x_pos, y_pos, theta_pos, thetag-theta_pos);
+        double theta_error = normalize_angle(thetag - theta_pos);
+        std::tuple<double,double,double> error_signal = std::make_tuple(theta_error, 0, 0);
+        RCLCPP_INFO(get_logger(), "rotating output |Goal_x:%f,Goal_y:%f|thetag:%f|Current_x:%f,Current_y:%f|current_yaw:%f|angular error:%f "
+        ,xf,yf, thetag,x_pos, y_pos, theta_pos, theta_error);
         return error_signal;
   }
 
@@ -277,11 +280,11 @@ bool pid_simulate_rotating(double x_goal, double y_goal, double tolerance, doubl
     switch(this->scene_number_){
     case Simulation:
         ref_points = &this->ref_points_simulation;        
-        RCLCPP_INFO(this->get_logger(), "ref_points Simulation Scence");
+     //   RCLCPP_INFO(this->get_logger(), "ref_points Simulation Scene");
     break;
     case Cyberworld:
       ref_points = &this->ref_points_cyberworld;   
-      RCLCPP_INFO(this->get_logger(), "ref_points Cyberworld Scence");
+     // RCLCPP_INFO(this->get_logger(), "ref_points Cyberworld Scence");
     break;
     }
     for(auto it2 = std::next(ref_points->begin(),1); it2 != ref_points->end(); it2++){        
@@ -343,7 +346,8 @@ bool pid_simulate_rotating(double x_goal, double y_goal, double tolerance, doubl
         usleep(hz_inverse_us);
     }
     char all_success_char = all_success? 'Y':'N';
-    RCLCPP_INFO(get_logger(), "Summary Kp_angle %f, Ki_angle %f, Kd_angle %f total elapsed time %ld, all successes? %c",
+    RCLCPP_INFO(get_logger(), "Summary Kp:%f,Ki:%f,Kd:%f,Kp_angle:%f,Ki_angle:%f,Kd_angle:%f,total elapsed time:%ld,all successes:%c",
+    this->Kp, this->Ki, this->Kd,
     this->Kp_angle, this->Ki_angle, this->Kd_angle, total_elapsed_time, all_success_char);   
     rclcpp::shutdown();
   }
@@ -469,20 +473,20 @@ void move_robot(geometry_msgs::msg::Twist &msg) {
         msg->pose.pose.orientation.z, msg->pose.pose.orientation.w);
     
     this->current_speed_ = msg->twist.twist;
-    this->world_est_current_yaw_rad_= current_yaw_rad_ *2;
+    /*this->world_est_current_yaw_rad_= current_yaw_rad_ *2;
     double theta_diff = prev_world_est_current_yaw_rad_ - world_est_current_yaw_rad_;
     double delta_x_robot_coordinate = current_pos_.x - prev_pos_x;
     double delta_y_robot_coordinate = current_pos_.y - prev_pos_y;
     double delta_x_world_coordinate =  cos(theta_diff) *  delta_x_robot_coordinate - sin(theta_diff) * delta_y_robot_coordinate;
     double delta_y_world_coordinate =  sin(theta_diff) *  delta_x_robot_coordinate + cos(theta_diff) * delta_y_robot_coordinate; 
     this->world_est_current_pos_x_ +=  delta_x_world_coordinate;
-    this->world_est_current_pos_y_ +=  delta_y_world_coordinate; 
+    this->world_est_current_pos_y_ +=  delta_y_world_coordinate; */
 
     RCLCPP_DEBUG(this->get_logger(), "current pos=['%f','%f','%f']",
                  current_pos_.x, current_pos_.y, current_yaw_rad_);
-    this->prev_pos_x = current_pos_.x;
-    this->prev_pos_y = current_pos_.y;
-    this->prev_world_est_current_yaw_rad_ = world_est_current_yaw_rad_;
+    // this->prev_pos_x = current_pos_.x;
+    // this->prev_pos_y = current_pos_.y;
+    // this->prev_world_est_current_yaw_rad_ = world_est_current_yaw_rad_;
   }
   double yaw_theta_from_quaternion(double qx, double qy, double qz, double qw) {
     double roll_rad, pitch_rad, yaw_rad;
@@ -534,20 +538,20 @@ void move_robot(geometry_msgs::msg::Twist &msg) {
    };
 
   std::list<std::tuple<double, double,int>> ref_points_cyberworld { //(x, y, point_name)
-std::make_tuple (0.84, 0.518, 1) ,
-std::make_tuple (2.6877, 0.518, 2) ,
-std::make_tuple (2.6877, 0.04800000000000004, 3) ,
-std::make_tuple (2.301235196685081, 0.04462638018555065, 4) ,
-std::make_tuple (2.3289159136559263, -0.47183597791111487, 5) ,
-std::make_tuple (2.718420516831006, -0.42852177954987414, 6) ,
-std::make_tuple (2.7388494899765057, -1.0041456908917477, 7) ,
-std::make_tuple (2.312192559660402, -0.9939025143073208, 8) ,
-std::make_tuple (2.29492122831896, -1.3443709691792418, 9) ,
-std::make_tuple (1.8332646068019698, -1.3617840080510675, 10) ,
-std::make_tuple (1.7423012336595385, -0.43602567237049494, 11) ,
-std::make_tuple (1.3155328804857283, -0.5258755873689844, 12) ,
-std::make_tuple (1.2792541199324234, -0.025478297043073028, 13) ,
-std::make_tuple (0.9037423276970575, -0.03182486680091656, 14) ,
+std::make_tuple (0.727479909183314, 0.4374669989084643, 2) ,
+std::make_tuple (2.575179909183314, 0.4374669989084643, 3) ,
+std::make_tuple (2.575179909183314, -0.032533001091535674, 4) ,
+std::make_tuple (2.1887151058683942, -0.035906620905985065, 5) ,
+std::make_tuple (2.2163958228392397, -0.5523689790026506, 6) ,
+std::make_tuple (2.6059004260143195, -0.5090547806414099, 7) ,
+std::make_tuple (2.626329399159819, -1.0846786919832834, 8) ,
+std::make_tuple (2.199672468843716, -1.0744355153988565, 9) ,
+std::make_tuple (2.182401137502274, -1.4249039702707775, 10) ,
+std::make_tuple (1.7207445159852839, -1.4423170091426032, 11) ,
+std::make_tuple (1.6297811428428526, -0.5465586734620306, 12) ,
+std::make_tuple (1.2030127896690423, -0.60640858846052, 13) ,
+std::make_tuple (1.1667340291157373, -0.10601129813460865, 14) ,
+std::make_tuple (0.7912222368803715, -0.11235786789245218, 1) ,
 };
 
 std::list<std::tuple<double, double,int>> standard_ref_points_cyberworld {
@@ -584,15 +588,6 @@ int main(int argc, char *argv[]) {
     scene_number_direction = std::atoi(argv[1]);
     is_forward_direction = scene_number_direction > 0;
     scene_number = static_cast<enum SceneType>(abs(scene_number_direction));
-    // switch (scene_number) {
-    // case Simulation:
-    // std::cout<<"Simulation scene"<<std::endl;
-    // break;
-
-    // case  Cyberworld:
-    // std::cout<<"Cyberworld scene"<<std::endl;
-    // break;
-    // }
   }
   auto maze_solver_node = std::make_shared<MazeSolver>(scene_number,is_forward_direction);
   rclcpp::executors::MultiThreadedExecutor executor;
