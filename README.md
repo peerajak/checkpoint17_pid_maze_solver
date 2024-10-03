@@ -19,3 +19,4 @@ source install/setup.bash ; ros2 run pid_maze_solver pid_maze_solver 2.1 0.001 0
 
 
 ros2 topic echo /odometry/filtered --field pose.pose.position
+ros2 topic echo /rosbot_xl_base_controller/odom --field pose.pose.position

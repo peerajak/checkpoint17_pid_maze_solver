@@ -538,20 +538,20 @@ void move_robot(geometry_msgs::msg::Twist &msg) {
    };
 
   std::list<std::tuple<double, double,int>> ref_points_cyberworld { //(x, y, point_name)
-std::make_tuple (0.727479909183314, 0.4374669989084643, 2) ,
-std::make_tuple (2.575179909183314, 0.4374669989084643, 3) ,
-std::make_tuple (2.575179909183314, -0.032533001091535674, 4) ,
-std::make_tuple (2.1887151058683942, -0.035906620905985065, 5) ,
-std::make_tuple (2.2163958228392397, -0.5523689790026506, 6) ,
-std::make_tuple (2.6059004260143195, -0.5090547806414099, 7) ,
-std::make_tuple (2.626329399159819, -1.0846786919832834, 8) ,
-std::make_tuple (2.199672468843716, -1.0744355153988565, 9) ,
-std::make_tuple (2.182401137502274, -1.4249039702707775, 10) ,
-std::make_tuple (1.7207445159852839, -1.4423170091426032, 11) ,
-std::make_tuple (1.6297811428428526, -0.5465586734620306, 12) ,
-std::make_tuple (1.2030127896690423, -0.60640858846052, 13) ,
-std::make_tuple (1.1667340291157373, -0.10601129813460865, 14) ,
-std::make_tuple (0.7912222368803715, -0.11235786789245218, 1) ,
+       std::make_tuple(0,0,1),
+    std::make_tuple(1.8477,0,2),
+    std::make_tuple(1.8477,-0.47,3),
+    std::make_tuple(1.4612351966850805,-0.47337361981444936,4),
+    std::make_tuple(1.488915913655926,-0.9898359779111149,5),
+    std::make_tuple(1.8784205168310057, -0.9465217795498742,6),
+    std::make_tuple(1.8988494899765054,-1.5221456908917477,7),
+    std::make_tuple(1.472192559660402,-1.5119025143073208,8),
+    std::make_tuple(1.45492122831896,-1.8623709691792418,9),
+    std::make_tuple(0.9932646068019697,-1.8797840080510675,10),
+    std::make_tuple(0.9023012336595384,-0.9874025672370495,11),
+    std::make_tuple(0.47553288048572817, -1.0438755873689844,12),
+    std::make_tuple(0.43925411993242325,-0.543478297043073,13),
+    std::make_tuple( 0.06374232769705736, -0.5498248668009166,14)
 };
 
 std::list<std::tuple<double, double,int>> standard_ref_points_cyberworld {
@@ -593,11 +593,7 @@ int main(int argc, char *argv[]) {
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(maze_solver_node);
   executor.spin();
-
-  /* TODO 
-  - Should I normalize the pid_error_rotation theta_error = thetag - theta_pos?
-  */
-
+  
   //rclcpp::spin(std::make_shared<MazeSolver>());
   rclcpp::shutdown();
   return 0;
