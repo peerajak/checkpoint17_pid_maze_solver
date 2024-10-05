@@ -32,8 +32,8 @@ public:
     rclcpp::SubscriptionOptions options3_odom;
     options3_odom.callback_group = callback_group_3_odom;
     subscription_3_odom = this->create_subscription<nav_msgs::msg::Odometry>(
-    //"/odometry/filtered", 10,
-     "/rosbot_xl_base_controller/odom", 10,
+    "/odometry/filtered", 10,
+    // "/rosbot_xl_base_controller/odom", 10,
         std::bind(&Odometry::odom_callback, this,
                   std::placeholders::_1), options3_odom);
 
